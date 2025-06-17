@@ -1,0 +1,20 @@
+{
+  "name": "MovieVerse",
+  "short_name": "MovieVerse",
+  "description": "Discover, rate, and get personalized movie recommendations.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#DC2626",
+  "orientation": "portrait",
+  "scope": "/",
+  "lang": "en-US",
+  "icons": [
+    {
+      "src": "./images/recommendation.png",
+      "sizes": "72x72",
+      "type": "image/png"
+    }
+    
+  ]
+}
