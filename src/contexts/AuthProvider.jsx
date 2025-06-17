@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import useFetch from "../hooks/useFetch.jsx"; // Ensure correct path
-import { AuthContext } from "./authContext.js"; // Ensure correct path
+import { AuthContext } from "./authContext.js";
+
 
 const AuthProvider = ({ children }) => {
+  // useFetch hook provides request function, loading and error states for API calls
   const { request, loading: fetchLoading, error: fetchError } = useFetch();
 
   const [user, setUser] = useState(null); // Stores the authenticated user object
@@ -10,134 +12,153 @@ const AuthProvider = ({ children }) => {
   const [initialLoading, setInitialLoading] = useState(true); // True while checking session on app startup
 
   /**
-   * `checkSession` attempts to retrieve user data from the server.
-   * This is typically used on app load to restore user session.
-   * It updates the `user`, `resMsg`, and `initialLoading` states.
+   * `checkUserStatus` attempts to retrieve user data from the server using the JWT.
+   * This is typically used on app load to restore user session if a token exists.
+   * It relies on `useFetch` to handle token-related errors (401/403) by clearing the token.
    */
-  const checkSession = useCallback(async () => {
+  const checkUserStatus = useCallback(async () => {
+    // Check if a token exists. If not, no need to make an API call, just set user to null.
+    if (!localStorage.getItem('jwtToken')) {
+      setUser(null);
+      setResMsg("No JWT token found. User is not logged in.");
+      setInitialLoading(false);
+      return;
+    }
+
     try {
-      const data = await request("/me"); // API endpoint to get current user data
+      // Attempt to fetch user data using the /me endpoint.
+      // useFetch will automatically attach the JWT.
+      const data = await request("/me");
+
       if (data?.user) {
-        setUser(data.user); // Set user if session is active
-        setResMsg(data.message || "Session active."); // Set success message
-        setInitialLoading(false); // Mark initial loading as complete
+        setUser(data.user); // Set user if API returns user data (token was valid)
+        setResMsg(data.message || "Session active.");
       } else {
-        // If server explicitly returns no user or an error, clear user
+        // If data is received but it explicitly indicates no user,
+        // it means the token might be there but invalid/expired for /me
+        // (though useFetch should handle 401/403 by clearing token already).
         setUser(null);
         setResMsg(data?.message || "No active session found.");
-        
+        localStorage.removeItem('jwtToken'); // Ensure token is removed if backend says no user
       }
     } catch (err) {
-      // This catch block handles network errors or server errors from /me endpoint
-      console.error("Session check error:", err);
-      setUser(null); // Ensure user is null on any session check failure
-      setResMsg(err.message || "Failed to check session.");
-      setInitialLoading(false); // Mark initial loading as complete
+      // This catch block handles network errors or other non-401/403 server errors
+      // The useFetch hook already handles 401/403 by clearing the token and throwing an error.
+      console.error("User status check error:", err);
+      setUser(null); // Ensure user is null on any status check failure
+      setResMsg(err.message || "Failed to check user status.");
     } finally {
-      setInitialLoading(false); // Session check is complete
+      setInitialLoading(false); // User status check is complete
     }
-  }, [request]); // `request` is a dependency as it's used inside checkSession
+  }, [request]);
 
   /**
-   * `login` function to handle user authentication.
-   * @param {string} email - User's email.
+   * `login` function to handle user authentication using JWT.
+   * On successful login, the received JWT is stored in localStorage.
+   * @param {string} username - User's username.
    * @param {string} password - User's password.
    * @returns {Promise<object|null>} The user object on success, or null on failure.
    */
-  const login = useCallback(async (email, password) => {
+  const login = useCallback(async (username, password) => {
     setResMsg(null); // Clear previous messages
     try {
-      const data = await request("/login", "POST", { email, password });
-      if (data?.user) {
-        setUser(data.user); // Set user on successful login
+      // Send login credentials to backend
+      const data = await request("/login", "POST", { username, password });
+
+      if (data?.token && data?.user) {
+        // On successful login, store the JWT
+        localStorage.setItem('jwtToken', data.token);
+        setUser(data.user); // Set user data from the response
         setResMsg(data.message || "Login successful.");
         setInitialLoading(false); // Mark initial loading as complete after login
-        // console.log(data.user); // Log user data for debugging
-        
-        return data; // Return user object
+        return data.user; // Return user object for components that need it
       } else {
-        setResMsg(data?.message || "Login failed.");
-        setUser(null);
+        setResMsg(data?.message || "Login failed: Invalid response.");
+        setUser(null); // Ensure user is null if login was unsuccessful
         return null;
       }
     } catch (err) {
       console.error("Login error:", err);
       setResMsg(err.message || "An error occurred during login.");
-      setUser(null);
+      setUser(null); // Ensure user is null on login failure
       return null;
     }
   }, [request]);
 
   /**
    * `register` function to handle user registration.
+   * Note: This assumes registration does NOT automatically log the user in and return a JWT.
+   * If your backend's /signup *does* return a token and logs the user in,
+   * you would add localStorage.setItem('jwtToken', data.token) here as well.
    * @param {string} username - User's chosen username.
-   * @param {string} email - User's email.
    * @param {string} password - User's password.
-   * @returns {Promise<object|null>} The user object on success, or null on failure.
+   * @returns {Promise<object|null>} The registration response data on success, or null on failure.
    */
-  const register = useCallback(async (username, email, password) => {
+  const register = useCallback(async (username, password) => { // Removed email as per backend example
     setResMsg(null); // Clear previous messages
     try {
-      const data = await request("/signup", "POST", { username, email, password });
-      if (data) {
-        setUser(data.user); // Set user on successful registration
+      const data = await request("/signup", "POST", { username, password });
+      if (data?.message) { // Assuming backend sends a message on successful registration
         setResMsg(data.message || "Registration successful.");
-        setInitialLoading(false); // Mark initial loading as complete after registration
-        // console.log(data); // Log user data for debugging
-        return data; // Return user object
+        // If registration auto-logs in, add: localStorage.setItem('jwtToken', data.token); setUser(data.user);
+        return data; // Return the response data, not necessarily a user object for non-auto-login
       } else {
         setResMsg(data?.message || "Registration failed.");
-        setUser(null);
         return null;
       }
     } catch (err) {
       console.error("Registration error:", err);
       setResMsg(err.message || "An error occurred during registration.");
-      setUser(null);
       return null;
     }
-  }
-  , [request]);
+  }, [request]);
 
   /**
    * `logout` function to handle user logout.
-   * Clears the user state and potentially informs the backend.
+   * Clears the JWT from localStorage and resets user state.
+   * Optionally, makes a backend call to invalidate refresh tokens or perform server-side cleanup.
    */
   const logout = useCallback(async () => {
     setResMsg(null); // Clear previous messages
     try {
-      const data = await request("/logout", "POST"); // Inform backend about logout
+      // Clear JWT token from localStorage immediately on logout
+      localStorage.removeItem('jwtToken');
+      setUser(null); // Clear user state locally
+
+      // Optional: Make a backend call to /logout for server-side cleanup (e.g., refresh token invalidation)
+      // This call will likely no longer have a valid JWT attached, which is fine.
+      const data = await request("/logout", "POST");
       if (data?.message) {
-        setUser(null); // Clear user state
         setResMsg(data.message || "Logged out successfully.");
       } else {
-        setResMsg(data?.message || "Logout failed on server.");
+        setResMsg("Logged out successfully (server response inconclusive).");
       }
     } catch (err) {
       console.error("Logout error:", err);
       setResMsg(err.message || "An error occurred during logout.");
     } finally {
-      setUser(null); // Always clear user state locally on logout attempt
+      setUser(null); // Always ensure user state is null after logout attempt
     }
   }, [request]);
 
-  // Effect to run checkSession only once when the component mounts
+  // Effect to run checkUserStatus only once when the component mounts
   useEffect(() => {
-    checkSession();
-  }, [checkSession]); // `checkSession` is a dependency, but it's memoized by useCallback
+    checkUserStatus();
+  }, [checkUserStatus]); // `checkUserStatus` is a dependency, but it's memoized by useCallback
 
   // Memoize the context value to prevent unnecessary re-renders of consumers
   const authContextValue = useMemo(() => ({
     user,
-    fetchLoading, // Renamed from 'loading' in useFetch to avoid confusion with initialLoading
-    fetchError,   // Renamed from 'error' in useFetch
+    isAuthenticated: !!user, // Convenience flag to check if a user is logged in
+    fetchLoading,
+    fetchError,
     resMsg,
     initialLoading,
     register,
     login,
     logout,
-    // checkSession, // Expose checkSession for manual re-checks if needed
-  }), [user, fetchLoading, fetchError, resMsg, initialLoading, login, logout,  register]);
+    // checkUserStatus, // Expose checkUserStatus for manual re-checks if needed
+  }), [user, fetchLoading, fetchError, resMsg, initialLoading, login, logout, register]);
 
   return (
     <AuthContext.Provider value={authContextValue}>
