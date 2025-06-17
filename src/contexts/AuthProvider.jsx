@@ -59,11 +59,11 @@ const AuthProvider = ({ children }) => {
    * @param {string} password - User's password.
    * @returns {Promise<object|null>} The user object on success, or null on failure.
    */
-  const login = useCallback(async (username, password) => {
+  const login = useCallback(async (email, password) => {
     setResMsg(null); // Clear previous messages
     try {
       // Send login credentials to backend
-      const data = await request("/login", "POST", { username, password });
+      const data = await request("/login", "POST", { email, password });
 
       if (data?.token && data?.user) {
         // On successful login, store the JWT
@@ -94,10 +94,10 @@ const AuthProvider = ({ children }) => {
    * @param {string} password - User's password.
    * @returns {Promise<object|null>} The registration response data on success, or null on failure.
    */
-  const register = useCallback(async (username, password) => { // Removed email as per backend example
+  const register = useCallback(async (username, password, email, age) => { // Removed email as per backend example
     setResMsg(null); // Clear previous messages
     try {
-      const data = await request("/signup", "POST", { username, password });
+      const data = await request("/signup", "POST", { username, password, email, age });
       if (data?.message) { // Assuming backend sends a message on successful registration
         setResMsg(data.message || "Registration successful.");
         // If registration auto-logs in, add: localStorage.setItem('jwtToken', data.token); setUser(data.user);

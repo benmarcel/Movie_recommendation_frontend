@@ -74,7 +74,7 @@ const SignupPage = () => {
 
     setIsSignupSubmitting(true); // Start signup specific loading
     try {
-      const result = await register(formData.username.trim(), formData.email.trim(), formData.password);
+      const result = await register(formData.username.trim(), formData.email.trim(), formData.password, formData.age.trim());
 
       if (result && result.success !== false) {
         showAlert('Signup successful! Redirecting...', 'success');
