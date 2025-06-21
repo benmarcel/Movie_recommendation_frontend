@@ -79,10 +79,15 @@ const LoginPage = () => {
     setIsLoginSubmitting(true); // Start login specific loading
     try {
       const result = await login(formData.email.trim(), formData.password);
+      // console.log("Login successful:", result);
 
       if (result && result.success !== false) {
         showAlert('Login successful! Redirecting...', 'success');
         setFormData({ email: '', password: '' });
+        // Navigate to home page after successful login
+        // Note: The navigate will be handled by the useEffect watching 'user' and 'initialLoading'
+        navigate('/home', { replace: true }); // This line is not needed here
+        
         // The navigate will be handled by the useEffect watching 'user' and 'initialLoading'
       } else {
         showAlert(result?.message || 'Login failed. Please check your credentials.', 'error');

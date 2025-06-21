@@ -1,16 +1,27 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import useAuth from '../../hooks/useAuth';
-import Alert from '../../components/Alert';
-import useAlert from '../../hooks/useAlert';
+import { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import useAuth from "../../hooks/useAuth";
+import Alert from "../../components/Alert";
+import useAlert from "../../hooks/useAlert";
 
 const SignupPage = () => {
   // Destructure initialLoading from useAuth, alongside other properties
-  const { fetchLoading, fetchError: authError, register, user, initialLoading } = useAuth();
+  const {
+    fetchLoading,
+    fetchError: authError,
+    register,
+    user,
+    initialLoading,
+  } = useAuth();
   const navigate = useNavigate();
   const { alertMessage, alertType, showAlert, clearAlert } = useAlert();
 
-  const [formData, setFormData] = useState({ username: '', email: '', password: '', age: '' });
+  const [formData, setFormData] = useState({
+    username: "",
+    email: "",
+    password: "",
+    age: "",
+  });
   // New local state to manage loading specifically for the signup form submission
   const [isSignupSubmitting, setIsSignupSubmitting] = useState(false);
 
@@ -18,7 +29,7 @@ const SignupPage = () => {
   useEffect(() => {
     // Only redirect if a user exists AND we are not in the middle of the initial session check
     if (user && !initialLoading) {
-      navigate('/home', { replace: true });
+      navigate("/home", { replace: true });
     }
   }, [user, initialLoading, navigate]); // Added initialLoading to dependencies
 
@@ -27,38 +38,43 @@ const SignupPage = () => {
     // Show error if authError exists and we are not in initial loading,
     // OR if the error specifically occurred DURING the initial loading
     if (authError && !fetchLoading && !initialLoading) {
-      showAlert(authError.message || 'An authentication error occurred.', 'error');
+      showAlert(
+        authError.message || "An authentication error occurred.",
+        "error"
+      );
     }
   }, [authError, fetchLoading, showAlert, initialLoading]); // Added initialLoading to dependencies
 
   const handleChange = (e) => {
-    if (alertType === 'error') {
+    if (alertType === "error") {
       clearAlert();
     }
-    setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
   const validateForm = () => {
     if (!formData.username.trim()) {
-      showAlert('Username is required.', 'error');
+      showAlert("Username is required.", "error");
       return false;
     }
     if (!formData.email.trim()) {
-      showAlert('Email is required.', 'error');
+      showAlert("Email is required.", "error");
       return false;
     }
     if (!formData.password.trim()) {
-      showAlert('Password is required.', 'error');
+      showAlert("Password is required.", "error");
       return false;
     }
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      showAlert('Please enter a valid email address.', 'error');
+    // const testEmail = "majorfrosh656@gmail.com";
+    // console.log(emailRegex.test(testEmail));
+    if (!emailRegex.test(formData.email.trim())) {
+      showAlert("Please enter a valid email address.", "error");
       return false;
     }
     if (formData.password.length < 6) {
-      showAlert('Password must be at least 6 characters long.', 'error');
+      showAlert("Password must be at least 6 characters long.", "error");
       return false;
     }
     return true;
@@ -74,20 +90,29 @@ const SignupPage = () => {
 
     setIsSignupSubmitting(true); // Start signup specific loading
     try {
-      const result = await register(formData.username.trim(), formData.email.trim(), formData.password, formData.age.trim());
+      const result = await register(
+        formData.username.trim(),
+        formData.email.trim(),
+        formData.password,
+        formData.age.trim()
+      );
 
       if (result && result.success !== false) {
-        showAlert('Signup successful! Redirecting...', 'success');
-        setFormData({ username: '', email: '', password: '', age: '' }); // Clear all form data
+        showAlert("Signup successful! Redirecting...", "success");
+        navigate("/home", { replace: true }); // Redirect to home page
+        setFormData({ username: "", email: "", password: "", age: "" }); // Clear all form data
         // The navigate will be handled by the useEffect watching 'user' and 'initialLoading'
       } else {
-        showAlert(result?.message || 'Signup failed. Please try again.', 'error');
+        showAlert(
+          result?.message || "Signup failed. Please try again.",
+          "error"
+        );
       }
     } catch (err) {
       console.error("Signup failed:", err);
       // authError from useAuth/useFetch will already be set and trigger the useEffect
-      let errorMessage = 'Signup failed. Please try again.';
-      showAlert(errorMessage, 'error');
+      let errorMessage = "Signup failed. Please try again.";
+      showAlert(errorMessage, "error");
     } finally {
       setIsSignupSubmitting(false); // End signup specific loading
     }
@@ -95,7 +120,12 @@ const SignupPage = () => {
 
   // Disable submit button if it's currently submitting (local state),
   // if inputs are empty, or if initial session check is ongoing
-  const isSubmitDisabled = isSignupSubmitting || !formData.username.trim() || !formData.email.trim() || !formData.password.trim() || initialLoading;
+  const isSubmitDisabled =
+    isSignupSubmitting ||
+    !formData.username.trim() ||
+    !formData.email.trim() ||
+    !formData.password.trim() ||
+    initialLoading;
 
   // --- Adaptive Tailwind CSS Classes (remain unchanged) ---
   const containerClasses = `
@@ -134,11 +164,29 @@ const SignupPage = () => {
     return (
       <div className={containerClasses}>
         <div className="flex flex-col items-center justify-center p-6 bg-white dark:bg-zinc-800 rounded-lg shadow-xl">
-          <svg className="animate-spin h-8 w-8 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          <svg
+            className="animate-spin h-8 w-8 text-red-600"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
           </svg>
-          <p className="mt-4 text-gray-700 dark:text-gray-300">Loading session...</p>
+          <p className="mt-4 text-gray-700 dark:text-gray-300">
+            Loading session...
+          </p>
         </div>
       </div>
     );
@@ -156,7 +204,9 @@ const SignupPage = () => {
         )}
 
         <div>
-          <label htmlFor="username" className="sr-only">Username</label>
+          <label htmlFor="username" className="sr-only">
+            Username
+          </label>
           <input
             id="username"
             type="text"
@@ -171,7 +221,9 @@ const SignupPage = () => {
           />
         </div>
         <div>
-          <label htmlFor="age" className="sr-only">Age</label>
+          <label htmlFor="age" className="sr-only">
+            Age
+          </label>
           <input
             id="age"
             type="number"
@@ -185,7 +237,9 @@ const SignupPage = () => {
           />
         </div>
         <div>
-          <label htmlFor="email" className="sr-only">Email</label>
+          <label htmlFor="email" className="sr-only">
+            Email
+          </label>
           <input
             id="email"
             type="email"
@@ -200,7 +254,9 @@ const SignupPage = () => {
           />
         </div>
         <div>
-          <label htmlFor="password" className="sr-only">Password</label>
+          <label htmlFor="password" className="sr-only">
+            Password
+          </label>
           <input
             id="password"
             type="password"
@@ -219,24 +275,45 @@ const SignupPage = () => {
           type="submit"
           className={buttonClasses}
           disabled={isSubmitDisabled}
-          aria-label={isSignupSubmitting ? 'Signing up...' : 'Sign up for an account'}
+          aria-label={
+            isSignupSubmitting ? "Signing up..." : "Sign up for an account"
+          }
         >
           {isSignupSubmitting ? ( // Use local state for button text
             <span className="flex items-center justify-center">
-              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <svg
+                className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
               </svg>
               Signing up...
             </span>
           ) : (
-            'Sign Up'
+            "Sign Up"
           )}
         </button>
 
         <p className="text-center text-sm text-gray-600 dark:text-zinc-400">
-          Already have an account?{' '}
-          <Link to="/login" className="font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors">
+          Already have an account?{" "}
+          <Link
+            to="/login"
+            className="font-medium text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+          >
             Login
           </Link>
         </p>

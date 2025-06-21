@@ -20,7 +20,7 @@ const UsersPage = () => {
     const res = await request('/users');
     if (res?.success) {
       setUsers(res.users);
-      console.log(res.users);
+      // console.log(res.users);
       
     } else {
       showAlert(res?.message || 'Could not fetch users.', 'error');

@@ -64,13 +64,15 @@ const AuthProvider = ({ children }) => {
     try {
       // Send login credentials to backend
       const data = await request("/login", "POST", { email, password });
-
-      if (data?.token && data?.user) {
+      // Check if the response contains user data
+      if (data?.user) {
         // On successful login, store the JWT
-        localStorage.setItem('jwtToken', data.token);
+        localStorage.setItem('jwtToken', data.user.token);
         setUser(data.user); // Set user data from the response
         setResMsg(data.message || "Login successful.");
         setInitialLoading(false); // Mark initial loading as complete after login
+        console.log(data.user); // Log user data for debugging
+        
         return data.user; // Return user object for components that need it
       } else {
         setResMsg(data?.message || "Login failed: Invalid response.");
@@ -94,7 +96,7 @@ const AuthProvider = ({ children }) => {
    * @param {string} password - User's password.
    * @returns {Promise<object|null>} The registration response data on success, or null on failure.
    */
-  const register = useCallback(async (username, password, email, age) => { // Removed email as per backend example
+  const register = useCallback(async (username, email, password,  age) => { // Removed email as per backend example
     setResMsg(null); // Clear previous messages
     try {
       const data = await request("/signup", "POST", { username, password, email, age });
